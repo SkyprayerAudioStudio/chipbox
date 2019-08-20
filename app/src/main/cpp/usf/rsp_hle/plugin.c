@@ -25,32 +25,16 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "usf/usf.h"
-#include "usf/usf_internal.h"
-
-#include "r4300/interupt.h"
+#include "../usf.h"
+#include "../main.h"
+#include "../usf_internal.h"
 
 #include "hle.h"
 
 /* Global functions needed by HLE core */
 void HleVerboseMessage(void* user_defined, const char *message, ...)
 {
-  #ifdef DEBUG_INFO
-  usf_state_t* state;
-  va_list ap;
-  size_t len;
-
-  state = (usf_state_t*)user_defined;
-
-  if (state->debug_log)
-  {
-    va_start( ap, message );
-    vfprintf( state->debug_log, message, ap );
-    va_end( ap );
-
-    fputs( "\n", state->debug_log );
-  }
-  #endif
+    /* discard verbose message */
 }
 
 void HleErrorMessage(void* user_defined, const char *message, ...)
@@ -70,7 +54,7 @@ void HleErrorMessage(void* user_defined, const char *message, ...)
     va_end( ap );
 
     state->last_error = state->error_message;
-    state->stop = 1;
+    StopEmulation(state);
 }
 
 void HleWarnMessage(void* user_defined, const char *message, ...)
@@ -90,18 +74,17 @@ void HleWarnMessage(void* user_defined, const char *message, ...)
     va_end( ap );
 
     state->last_error = state->error_message;
-    state->stop = 1;
+    StopEmulation(state);
 }
 
 void HleCheckInterrupts(void* user_defined)
 {
-    //check_interupt((usf_state_t*)user_defined);
+    CheckInterrupts((usf_state_t *) user_defined);
 }
 
 void HleProcessDlistList(void* user_defined)
 {
-    usf_state_t * state = (usf_state_t *) user_defined;
-    state->g_r4300.mi.regs[MI_INTR_REG] |= MI_INTR_DP;
+    /* disabled */
 }
 
 void HleProcessAlistList(void* user_defined)

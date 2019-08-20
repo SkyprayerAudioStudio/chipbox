@@ -6,6 +6,6 @@
     <item>
         <bitmap
             android:src="@drawable/img_onboarding_logo"
-            android:gravity="center"/>
+            android:gravity="center" />
     </item>
 </layer-list>

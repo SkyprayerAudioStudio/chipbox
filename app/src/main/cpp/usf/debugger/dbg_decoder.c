@@ -71,6 +71,7 @@
 #endif
 #include "dbg_decoder.h"
 #include "dbg_decoder_local.h"
+#include "osal/preproc.h"
 
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -96,11 +96,7 @@ static int16_t ramp_step(struct ramp_t* ramp)
 }
 
 /* global functions */
-#ifdef DEBUG_INFO
-void alist_process(struct hle_t* hle, const acmd_callback_t abi[], unsigned int abi_size, const char* abi_names[])
-#else
 void alist_process(struct hle_t* hle, const acmd_callback_t abi[], unsigned int abi_size)
-#endif
 {
     uint32_t w1, w2;
     unsigned int acmd;
@@ -115,12 +111,7 @@ void alist_process(struct hle_t* hle, const acmd_callback_t abi[], unsigned int 
         acmd = (w1 >> 24) & 0x7f;
 
         if (acmd < abi_size)
-        {
-            #ifdef DEBUG_INFO
-              HleVerboseMessage(hle->user_defined, "HLE: %s (%08x %08x)", abi_names[acmd], w1, w2);
-            #endif
             (*abi[acmd])(hle, w1, w2);
-        }
         else
             HleWarnMessage(hle->user_defined, "Invalid ABI command %u", acmd);
     }
@@ -128,7 +119,7 @@ void alist_process(struct hle_t* hle, const acmd_callback_t abi[], unsigned int 
 
 uint32_t alist_get_address(struct hle_t* hle, uint32_t so, const uint32_t *segments, size_t n)
 {
-    uint8_t  segment = (so >> 24) & 0x3f;
+    uint8_t segment = (so >> 24);
     uint32_t offset  = (so & 0xffffff);
 
     if (segment >= n) {
@@ -141,7 +132,7 @@ uint32_t alist_get_address(struct hle_t* hle, uint32_t so, const uint32_t *segme
 
 void alist_set_address(struct hle_t* hle, uint32_t so, uint32_t *segments, size_t n)
 {
-    uint8_t  segment = (so >> 24) & 0x3f;
+    uint8_t segment = (so >> 24);
     uint32_t offset  = (so & 0xffffff);
 
     if (segment >= n) {
@@ -290,7 +281,6 @@ void alist_envmix_exp(
     int x, y;
     short save_buffer[40];
 
-    memcpy((uint8_t *)save_buffer, (hle->dram + address), sizeof(save_buffer));
     if (init) {
         ramps[0].value  = (vol[0] << 16);
         ramps[1].value  = (vol[1] << 16);
@@ -301,6 +291,7 @@ void alist_envmix_exp(
         exp_seq[0]      = (vol[0] * rate[0]);
         exp_seq[1]      = (vol[1] * rate[1]);
     } else {
+        memcpy((uint8_t *) save_buffer, (hle->dram + address), 80);
         wet             = *(int16_t *)(save_buffer +  0); /* 0-1 */
         dry             = *(int16_t *)(save_buffer +  2); /* 2-3 */
         ramps[0].target = *(int32_t *)(save_buffer +  4); /* 4-5 */
@@ -362,7 +353,7 @@ void alist_envmix_exp(
     *(int32_t *)(save_buffer + 14) = exp_seq[1];        /* 14-15 */
     *(int32_t *)(save_buffer + 16) = (int32_t)ramps[0].value;    /* 12-13 */
     *(int32_t *)(save_buffer + 18) = (int32_t)ramps[1].value;    /* 14-15 */
-    memcpy(hle->dram + address, (uint8_t *)save_buffer, sizeof(save_buffer));
+    memcpy(hle->dram + address, (uint8_t *) save_buffer, 80);
 }
 
 void alist_envmix_ge(
@@ -390,7 +381,6 @@ void alist_envmix_ge(
     struct ramp_t ramps[2];
     short save_buffer[40];
 
-    memcpy((uint8_t *)save_buffer, (hle->dram + address), 80);
     if (init) {
         ramps[0].value  = (vol[0] << 16);
         ramps[1].value  = (vol[1] << 16);
@@ -399,6 +389,7 @@ void alist_envmix_ge(
         ramps[0].step   = rate[0] / 8;
         ramps[1].step   = rate[1] / 8;
     } else {
+        memcpy((uint8_t *) save_buffer, (hle->dram + address), 80);
         wet             = *(int16_t *)(save_buffer +  0);   /* 0-1 */
         dry             = *(int16_t *)(save_buffer +  2);   /* 2-3 */
         ramps[0].target = *(int32_t *)(save_buffer +  4);   /* 4-5 */
@@ -466,7 +457,6 @@ void alist_envmix_lin(
     int16_t* const wl = (int16_t*)(hle->alist_buffer + dmem_wl);
     int16_t* const wr = (int16_t*)(hle->alist_buffer + dmem_wr);
 
-    memcpy((uint8_t *)save_buffer, hle->dram + address, 80);
     if (init) {
         ramps[0].step   = rate[0] / 8;
         ramps[0].value  = (vol[0] << 16);
@@ -476,6 +466,7 @@ void alist_envmix_lin(
         ramps[1].target = (target[1] << 16);
     }
     else {
+        memcpy((uint8_t *) save_buffer, hle->dram + address, 80);
         wet             = *(int16_t *)(save_buffer +  0); /* 0-1 */
         dry             = *(int16_t *)(save_buffer +  2); /* 2-3 */
         ramps[0].target = *(int16_t *)(save_buffer +  4) << 16; /* 4-5 */
@@ -674,11 +665,11 @@ void alist_resample(
     while (count != 0) {
         const int16_t* lut = RESAMPLE_LUT + ((pitch_accu & 0xfc00) >> 8);
 
-        *sample(hle, opos++) = clamp_s16( (
-            (*sample(hle, ipos    ) * lut[0]) +
-            (*sample(hle, ipos + 1) * lut[1]) +
-            (*sample(hle, ipos + 2) * lut[2]) +
-            (*sample(hle, ipos + 3) * lut[3]) ) >> 15);
+        *sample(hle, opos++) = clamp_s16(
+                ((*sample(hle, ipos) * lut[0]) >> 15) +
+                ((*sample(hle, ipos + 1) * lut[1]) >> 15) +
+                ((*sample(hle, ipos + 2) * lut[2]) >> 15) +
+                ((*sample(hle, ipos + 3) * lut[3]) >> 15));
 
         pitch_accu += pitch;
         ipos += (pitch_accu >> 16);
@@ -969,7 +960,7 @@ void alist_polef(
         count -= 16;
     } while (count != 0);
 
-    dram_store_u32(hle, (uint32_t*)(dst - 4), address, 2);
+    dram_store_u16(hle, (uint16_t *) (dst - 4), address, 4);
 }
 
 void alist_iirf(

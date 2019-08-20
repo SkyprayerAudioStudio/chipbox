@@ -6,7 +6,7 @@
 
 #include "../../psflib/psflib.h"
 #include "../../libsamplerate/src/samplerate.h"
-#include "../../usf/usf/usf.h"
+#include "../../usf/usf.h"
 
 #define CHIPBOX_TAG "BackendUSF"
 
@@ -301,10 +301,10 @@ void JNICALL Java_net_sigmabeta_chipbox_backend_usf_BackendImpl_readNextSamples
 }
 
 int64_t generateAudio(uint64_t bytes_requested) {
-    const char *error_string = usf_render_resampled(g_emu_state,
-                                                    g_buffer_as_short_track,
-                                                    g_buffer_length_samples_track,
-                                                    g_sample_rate_track);
+    const char *error_string = usf_render(g_emu_state,
+                                          g_buffer_as_short_track,
+                                          g_buffer_length_samples_track,
+                                          reinterpret_cast<int32_t *>(&g_sample_rate_device));
     if (error_string) {
         g_last_error = error_string;
         return -1;
